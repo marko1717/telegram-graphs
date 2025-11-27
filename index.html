@@ -161,11 +161,9 @@
         }
         
         window.addEventListener('resize', resizeCanvas);
-        resizeCanvas();
         
         const functions = {
             'x²': { 
-                enabled: true, 
                 color: '#3b82f6', 
                 fn: (x) => x * x,
                 btn: document.getElementById('btn1')
@@ -321,10 +319,12 @@
         });
 
         // Початкове малювання
+        resizeCanvas();
         drawGraph();
         
         // Повідомляємо Telegram, що додаток готовий (тільки якщо в Telegram)
         if (isInTelegram) {
+            
             tg.ready();
         }
     </script>
