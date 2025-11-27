@@ -1,0 +1,510 @@
+<!DOCTYPE html>
+<html lang="uk">
+  <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+        <title>📐 Перетворення графіків функцій</title>
+      <script src="https://telegram.org/js/telegram-web-app.js"></script>
+      <style>
+                * {
+                              margin: 0;
+                              padding: 0;
+                              box-sizing: border-box;
+                }
+
+                body {
+                              font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, Roboto, Arial, sans-serif;
+                              display: flex;
+                              flex-direction: column;
+                              align-items: center;
+                              padding: 20px;
+                              background-color: var(--tg-theme-bg-color, #f5f5f5);
+                              color: var(--tg-theme-text-color, #333);
+                              margin: 0;
+                              min-height: 100vh;
+                }
+
+                h1 {
+                              color: var(--tg-theme-text-color, #333);
+                              margin-bottom: 10px;
+                              font-size: 24px;
+                              text-align: center;
+                }
+
+                .subtitle {
+                              color: var(--tg-theme-hint-color, #666);
+                              margin-bottom: 20px;
+                              font-size: 14px;
+                              text-align: center;
+                }
+
+                #canvasContainer {
+                              width: 100%;
+                              max-width: 700px;
+                              margin: auto;
+                              overflow: hidden;
+                }
+
+                canvas {
+                              border: 1px solid var(--tg-theme-hint-color, #999);
+                              background-color: var(--tg-theme-secondary-bg-color, white);
+                              box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+                              border-radius: 12px;
+                              width: 100%;
+                              height: auto;
+                              max-width: 100%;
+                              touch-action: none;
+                }
+
+                .controls {
+                              width: 100%;
+                              max-width: 700px;
+                              margin-top: 20px;
+                              background: var(--tg-theme-secondary-bg-color, white);
+                              padding: 20px;
+                              border-radius: 12px;
+                              box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+                }
+
+                .function-selector {
+                              margin-bottom: 20px;
+                }
+
+                .function-buttons {
+                              display: flex;
+                              gap: 10px;
+                              flex-wrap: wrap;
+                              justify-content: center;
+                }
+
+                .function-btn {
+                              padding: 10px 20px;
+                              border: none;
+                              border-radius: 8px;
+                              cursor: pointer;
+                              font-weight: 600;
+                              color: white;
+                              font-size: 14px;
+                              transition: all 0.3s;
+                              flex: 1;
+                              min-width: 100px;
+                }
+
+                .function-btn:active {
+                              transform: scale(0.95);
+                }
+
+                .function-btn.active {
+                              box-shadow: 0 0 0 3px rgba(255,255,255,0.3) inset;
+                }
+
+                .slider-group {
+                              margin-bottom: 20px;
+                }
+
+                .slider-label {
+                              display: flex;
+                              justify-content: space-between;
+                              margin-bottom: 8px;
+                              font-size: 14px;
+                              font-weight: 600;
+                }
+
+                .slider-value {
+                              color: var(--tg-theme-link-color, #3b82f6);
+                              font-family: 'Courier New', monospace;
+                }
+
+                input[type="range"] {
+                              width: 100%;
+                              height: 8px;
+                              border-radius: 5px;
+                              background: var(--tg-theme-hint-color, #ddd);
+                              outline: none;
+                              -webkit-appearance: none;
+                }
+
+                input[type="range"]::-webkit-slider-thumb {
+                              -webkit-appearance: none;
+                              appearance: none;
+                              width: 20px;
+                              height: 20px;
+                              border-radius: 50%;
+                              background: var(--tg-theme-button-color, #3b82f6);
+                              cursor: pointer;
+                }
+
+                input[type="range"]::-moz-range-thumb {
+                              width: 20px;
+                              height: 20px;
+                              border-radius: 50%;
+                              background: var(--tg-theme-button-color, #3b82f6);
+                              cursor: pointer;
+                              border: none;
+                }
+
+                .formula {
+                              background: var(--tg-theme-secondary-bg-color, #f0f0f0);
+                              padding: 15px;
+                              border-radius: 8px;
+                              text-align: center;
+                              font-size: 18px;
+                              font-weight: bold;
+                              margin-top: 15px;
+                              border: 2px solid var(--tg-theme-hint-color, #ddd);
+                }
+
+                .info {
+                              margin-top: 15px;
+                              text-align: center;
+                              color: var(--tg-theme-hint-color, #666);
+                              font-size: 13px;
+                              line-height: 1.5;
+                }
+
+                @media (max-width: 480px) {
+                              h1 { font-size: 20px; }
+                              .function-btn { font-size: 13px; padding: 8px 16px; }
+                }
+            </style>
+  </head>
+  <body>
+        <h1>📐 Перетворення графіків функцій</h1>
+      <div class="subtitle">Інтерактивні зсуви та розтягнення</div>div>
+  
+      <div id="canvasContainer">
+              <canvas id="canvas"></canvas>canvas>
+      </div>div>
+  
+      <div class="controls">
+              <div class="function-selector">
+                          <div class="function-buttons">
+                                          <button class="function-btn active" id="btn1" style="background-color: #3b82f6;">y = x²</button>button>
+                                          <button class="function-btn" id="btn2" style="background-color: #ef4444;">y = |x|</button>button>
+                                          <button class="function-btn" id="btn3" style="background-color: #10b981;">y = √x</button>button>
+                                          <button class="function-btn" id="btn4" style="background-color: #f59e0b;">y = x³</button>button>
+                                          <button class="function-btn" id="btn5" style="background-color: #8b5cf6;">y = 2/x</button>button>
+                          </div>div>
+              </div>div>
+      
+              <div class="slider-group">
+                          <div class="slider-label">
+                                          <span>Розтягнення по Y (a):</span>
+                                          <span class="slider-value" id="aValue">1</span>
+                          </div>div>
+                          <input type="range" id="aSlider" min="-3" max="3" step="0.1" value="1">
+              </div>div>
+      
+              <div class="slider-group">
+                          <div class="slider-label">
+                                          <span>Розтягнення по X (b):</span>
+                                          <span class="slider-value" id="bValue">1</span>
+                          </div>div>
+                          <input type="range" id="bSlider" min="0.1" max="3" step="0.1" value="1">
+              </div>div>
+      
+              <div class="slider-group">
+                          <div class="slider-label">
+                                          <span>Зсув вліво/вправо (h):</span>
+                                          <span class="slider-value" id="hValue">0</span>
+                          </div>div>
+                          <input type="range" id="hSlider" min="-5" max="5" step="0.5" value="0">
+              </div>div>
+      
+              <div class="slider-group">
+                          <div class="slider-label">
+                                          <span>Зсув вгору/вниз (k):</span>
+                                          <span class="slider-value" id="kValue">0</span>
+                          </div>div>
+                          <input type="range" id="kSlider" min="-5" max="5" step="0.5" value="0">
+              </div>div>
+      
+              <div class="formula" id="formula">y = x²</div>div>
+      
+              <div class="info">
+                          Змінюйте параметри слайдерами, щоб побачити, як трансформується графік.<br>
+                          Формула: y = a·f(b·(x - h)) + k
+              </div>div>
+      </div>div>
+  
+      <script>
+                // Ініціалізація Telegram Web App
+                let tg = null;
+                let isInTelegram = false;
+
+                if (window.Telegram && window.Telegram.WebApp) {
+                              tg = window.Telegram.WebApp;
+                              isInTelegram = true;
+                              tg.expand();
+                              tg.enableClosingConfirmation();
+                              document.body.style.backgroundColor = tg.themeParams.bg_color || '#f5f5f5';
+                }
+
+                const canvas = document.getElementById('canvas');
+                const ctx = canvas.getContext('2d');
+
+                function resizeCanvas() {
+                              const container = document.getElementById('canvasContainer');
+                              const size = Math.min(container.clientWidth, 700);
+                              canvas.width = size;
+                              canvas.height = size;
+                              drawGraph();
+                }
+
+                window.addEventListener('resize', resizeCanvas);
+
+                // Параметри перетворень
+                let params = {
+                              a: 1,  // розтягнення по Y
+                              b: 1,  // розтягнення по X
+                              h: 0,  // зсув вліво/вправо
+                              k: 0   // зсув вгору/вниз
+                };
+
+                const functions = {
+                              'x²': {
+                                                color: '#3b82f6',
+                                                fn: (x) => x * x,
+                                                btn: document.getElementById('btn1'),
+                                                formula: 'x²'
+                              },
+                              '|x|': {
+                                                color: '#ef4444',
+                                                fn: (x) => Math.abs(x),
+                                                btn: document.getElementById('btn2'),
+                                                formula: '|x|'
+                              },
+                              '√x': {
+                                                color: '#10b981',
+                                                fn: (x) => x >= 0 ? Math.sqrt(x) : null,
+                                                btn: document.getElementById('btn3'),
+                                                formula: '√x'
+                              },
+                              'x³': {
+                                                color: '#f59e0b',
+                                                fn: (x) => x * x * x,
+                                                btn: document.getElementById('btn4'),
+                                                formula: 'x³'
+                              },
+                              '2/x': {
+                                                color: '#8b5cf6',
+                                                fn: (x) => x !== 0 ? 2 / x : null,
+                                                btn: document.getElementById('btn5'),
+                                                formula: '2/x'
+                              }
+                };
+
+                let currentFunction = 'x²';
+
+                function drawGraph() {
+                              const width = canvas.width;
+                              const height = canvas.height;
+
+                              // Очищення canvas
+                              ctx.fillStyle = isInTelegram ? tg.themeParams.secondary_bg_color || '#ffffff' : '#ffffff';
+                              ctx.fillRect(0, 0, width, height);
+
+                              // Налаштування системи координат
+                              const xMin = -5, xMax = 5;
+                              const yMin = -5, yMax = 5;
+                              const xScale = width / (xMax - xMin);
+                              const yScale = height / (yMax - yMin);
+
+                              const xToCanvas = (x) => (x - xMin) * xScale;
+                              const yToCanvas = (y) => height - (y - yMin) * yScale;
+
+                              // Малювання сітки
+                              ctx.strokeStyle = isInTelegram ? tg.themeParams.hint_color || '#e5e7eb' : '#e5e7eb';
+                              ctx.lineWidth = 0.5;
+
+                              for (let i = Math.ceil(xMin); i <= Math.floor(xMax); i++) {
+                                                ctx.beginPath();
+                                                ctx.moveTo(xToCanvas(i), 0);
+                                                ctx.lineTo(xToCanvas(i), height);
+                                                ctx.stroke();
+                              }
+
+                              for (let i = Math.ceil(yMin); i <= Math.floor(yMax); i++) {
+                                                ctx.beginPath();
+                                                ctx.moveTo(0, yToCanvas(i));
+                                                ctx.lineTo(width, yToCanvas(i));
+                                                ctx.stroke();
+                              }
+
+                              // Малювання осей
+                              ctx.strokeStyle = isInTelegram ? tg.themeParams.text_color || '#374151' : '#374151';
+                              ctx.lineWidth = 2;
+
+                              // Вісь X
+                              ctx.beginPath();
+                              ctx.moveTo(0, yToCanvas(0));
+                              ctx.lineTo(width, yToCanvas(0));
+                              ctx.stroke();
+
+                              // Вісь Y
+                              ctx.beginPath();
+                              ctx.moveTo(xToCanvas(0), 0);
+                              ctx.lineTo(xToCanvas(0), height);
+                              ctx.stroke();
+
+                              // Позначки на осях
+                              ctx.fillStyle = isInTelegram ? tg.themeParams.text_color || '#374151' : '#374151';
+                              ctx.font = '12px Arial';
+                              ctx.textAlign = 'center';
+
+                              for (let i = Math.ceil(xMin); i <= Math.floor(xMax); i++) {
+                                                if (i !== 0) {
+                                                                      ctx.fillText(i.toString(), xToCanvas(i), yToCanvas(0) + 15);
+                                                }
+                              }
+
+                              ctx.textAlign = 'right';
+                              for (let i = Math.ceil(yMin); i <= Math.floor(yMax); i++) {
+                                                if (i !== 0) {
+                                                                      ctx.fillText(i.toString(), xToCanvas(0) - 5, yToCanvas(i) + 5);
+                                                }
+                              }
+
+                              // Малювання оригінальної функції (тонка сіра лінія)
+                              const func = functions[currentFunction];
+                              ctx.strokeStyle = '#cccccc';
+                              ctx.lineWidth = 1;
+                              ctx.setLineDash([5, 5]);
+                              ctx.beginPath();
+
+                              let started = false;
+                              const step = 0.01;
+                              for (let x = xMin; x <= xMax; x += step) {
+                                                const y = func.fn(x);
+                                                if (y !== null && !isNaN(y) && isFinite(y) && y >= yMin && y <= yMax) {
+                                                                      const canvasX = xToCanvas(x);
+                                                                      const canvasY = yToCanvas(y);
+                                                                      if (!started) {
+                                                                                                ctx.moveTo(canvasX, canvasY);
+                                                                                                started = true;
+                                                                      } else {
+                                                                                                ctx.lineTo(canvasX, canvasY);
+                                                                      }
+                                                } else if (started) {
+                                                                      ctx.stroke();
+                                                                      ctx.beginPath();
+                                                                      started = false;
+                                                }
+                              }
+                              if (started) ctx.stroke();
+                              ctx.setLineDash([]);
+
+                              // Малювання трансформованої функції
+                              ctx.strokeStyle = func.color;
+                              ctx.lineWidth = 3;
+                              ctx.beginPath();
+
+                              started = false;
+                              for (let x = xMin; x <= xMax; x += step) {
+                                                // Застосування трансформації: y = a * f(b * (x - h)) + k
+                                                const transformedX = params.b * (x - params.h);
+                                                const baseY = func.fn(transformedX);
+                                                const y = baseY !== null ? params.a * baseY + params.k : null;
+
+                                                if (y !== null && !isNaN(y) && isFinite(y) && y >= yMin && y <= yMax) {
+                                                                      const canvasX = xToCanvas(x);
+                                                                      const canvasY = yToCanvas(y);
+                                                                      if (!started) {
+                                                                                                ctx.moveTo(canvasX, canvasY);
+                                                                                                started = true;
+                                                                      } else {
+                                                                                                ctx.lineTo(canvasX, canvasY);
+                                                                      }
+                                                } else if (started) {
+                                                                      ctx.stroke();
+                                                                      ctx.beginPath();
+                                                                      started = false;
+                                                }
+                              }
+                              if (started) ctx.stroke();
+                }
+
+                function updateFormula() {
+                              const func = functions[currentFunction];
+                              let formula = 'y = ';
+
+                              if (params.a !== 1) formula += params.a + ' · ';
+                              formula += func.formula;
+
+                              if (params.b !== 1 || params.h !== 0) {
+                                                formula += '(';
+                                                if (params.b !== 1) formula += params.b + '·';
+                                                formula += '(x';
+                                                if (params.h !== 0) formula += (params.h > 0 ? ' - ' : ' + ') + Math.abs(params.h);
+                                                formula += '))';
+                              }
+
+                              if (params.k !== 0) formula += (params.k > 0 ? ' + ' : ' - ') + Math.abs(params.k);
+
+                              document.getElementById('formula').textContent = formula;
+                }
+
+                // Обробники слайдерів
+                document.getElementById('aSlider').addEventListener('input', (e) => {
+                              params.a = parseFloat(e.target.value);
+                              document.getElementById('aValue').textContent = params.a.toFixed(1);
+                              updateFormula();
+                              drawGraph();
+                });
+
+                document.getElementById('bSlider').addEventListener('input', (e) => {
+                              params.b = parseFloat(e.target.value);
+                              document.getElementById('bValue').textContent = params.b.toFixed(1);
+                              updateFormula();
+                              drawGraph();
+                });
+
+                document.getElementById('hSlider').addEventListener('input', (e) => {
+                              params.h = parseFloat(e.target.value);
+                              document.getElementById('hValue').textContent = params.h.toFixed(1);
+                              updateFormula();
+                              drawGraph();
+                });
+
+                document.getElementById('kSlider').addEventListener('input', (e) => {
+                              params.k = parseFloat(e.target.value);
+                              document.getElementById('kValue').textContent = params.k.toFixed(1);
+                              updateFormula();
+                              drawGraph();
+                });
+
+                // Обробники кнопок функцій
+                Object.entries(functions).forEach(([name, func]) => {
+                              func.btn.addEventListener('click', () => {
+                                                // Зняти active з усіх кнопок
+                                                Object.values(functions).forEach(f => f.btn.classList.remove('active'));
+
+                                                // Додати active до поточної
+                                                func.btn.classList.add('active');
+                                                currentFunction = name;
+
+                                                // Тактильний відгук
+                                                if (isInTelegram && tg.HapticFeedback) {
+                                                                      tg.HapticFeedback.impactOccurred('light');
+                                                }
+
+                                                updateFormula();
+                                                drawGraph();
+                              });
+                });
+
+                // Початкова ініціалізація
+                resizeCanvas();
+                updateFormula();
+
+                // Повідомляємо Telegram, що додаток готовий
+                if (isInTelegram) {
+                              tg.ready();
+                }
+                  </script>
+  </body>
+</html>html>
+      </script></span></span></h1>
+  </body>
+      </style></title>
+  </head>
