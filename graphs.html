@@ -1,0 +1,332 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Графіки функцій</title>
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 15px;
+            background-color: var(--tg-theme-bg-color, #f5f5f5);
+            color: var(--tg-theme-text-color, #333);
+            margin: 0;
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+        
+        h1 {
+            color: var(--tg-theme-text-color, #333);
+            margin-bottom: 15px;
+            font-size: 24px;
+            text-align: center;
+        }
+        
+        #canvasContainer {
+            width: 100%;
+            max-width: 700px;
+            margin: 0 auto;
+            overflow: hidden;
+        }
+        
+        canvas {
+            border: 2px solid var(--tg-theme-hint-color, #999);
+            background-color: var(--tg-theme-secondary-bg-color, white);
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            border-radius: 12px;
+            width: 100%;
+            height: auto;
+            max-width: 100%;
+            touch-action: none;
+        }
+        
+        .controls {
+            display: flex;
+            gap: 8px;
+            margin-top: 15px;
+            flex-wrap: wrap;
+            justify-content: center;
+            background: var(--tg-theme-secondary-bg-color, white);
+            padding: 12px;
+            border-radius: 12px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            width: 100%;
+            max-width: 700px;
+        }
+        
+        button {
+            padding: 10px 16px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            color: white;
+            font-size: 13px;
+            transition: all 0.3s;
+            flex: 1 1 calc(50% - 8px);
+            min-width: 120px;
+            touch-action: manipulation;
+        }
+        
+        button:active {
+            transform: scale(0.95);
+        }
+        
+        button.disabled {
+            opacity: 0.4;
+        }
+        
+        .info {
+            margin-top: 12px;
+            text-align: center;
+            color: var(--tg-theme-hint-color, #666);
+            max-width: 700px;
+            font-size: 13px;
+            line-height: 1.4;
+        }
+
+        @media (max-width: 480px) {
+            h1 {
+                font-size: 20px;
+            }
+            
+            button {
+                font-size: 12px;
+                padding: 8px 12px;
+            }
+            
+            .info {
+                font-size: 12px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <h1>📊 Графіки функцій</h1>
+    
+    <div id="canvasContainer">
+        <canvas id="canvas"></canvas>
+    </div>
+    
+    <div class="controls">
+        <button id="btn1" style="background-color: #3b82f6;">y = x²</button>
+        <button id="btn2" style="background-color: #ef4444;">y = |x|</button>
+        <button id="btn3" style="background-color: #10b981;">y = √x</button>
+        <button id="btn4" style="background-color: #f59e0b;">y = x³</button>
+        <button id="btn5" style="background-color: #8b5cf6;">y = 2/x</button>
+    </div>
+    
+    <div class="info">
+        Натисніть на кнопки функцій, щоб ввімкнути або вимкнути їх відображення на графіку.
+    </div>
+
+    <script>
+        // Ініціалізація Telegram Web App (з перевіркою чи доступний)
+        let tg = null;
+        let isInTelegram = false;
+        
+        if (window.Telegram && window.Telegram.WebApp) {
+            tg = window.Telegram.WebApp;
+            isInTelegram = true;
+            tg.expand();
+            tg.enableClosingConfirmation();
+            
+            // Встановлюємо колір фону відповідно до теми Telegram
+            document.body.style.backgroundColor = tg.themeParams.bg_color || '#f5f5f5';
+        } else {
+            // Якщо відкрито в браузері - використовуємо стандартні кольори
+            console.log('📱 Для повної функціональності відкрийте через Telegram бота');
+        }
+
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+        
+        // Адаптивний розмір canvas
+        function resizeCanvas() {
+            const container = document.getElementById('canvasContainer');
+            const size = Math.min(container.clientWidth, 700);
+            canvas.width = size;
+            canvas.height = size;
+            drawGraph();
+        }
+        
+        window.addEventListener('resize', resizeCanvas);
+        resizeCanvas();
+        
+        const functions = {
+            'x²': { 
+                enabled: true, 
+                color: '#3b82f6', 
+                fn: (x) => x * x,
+                btn: document.getElementById('btn1')
+            },
+            '|x|': { 
+                enabled: true, 
+                color: '#ef4444', 
+                fn: (x) => Math.abs(x),
+                btn: document.getElementById('btn2')
+            },
+            '√x': { 
+                enabled: true, 
+                color: '#10b981', 
+                fn: (x) => x >= 0 ? Math.sqrt(x) : null,
+                btn: document.getElementById('btn3')
+            },
+            'x³': { 
+                enabled: true, 
+                color: '#f59e0b', 
+                fn: (x) => x * x * x,
+                btn: document.getElementById('btn4')
+            },
+            '2/x': { 
+                enabled: true, 
+                color: '#8b5cf6', 
+                fn: (x) => x !== 0 ? 2 / x : null,
+                btn: document.getElementById('btn5')
+            }
+        };
+
+        function drawGraph() {
+            const width = canvas.width;
+            const height = canvas.height;
+
+            // Очищення canvas (використовуємо Telegram тему якщо доступна)
+            ctx.fillStyle = (isInTelegram && tg.themeParams.secondary_bg_color) || '#ffffff';
+            ctx.fillRect(0, 0, width, height);
+
+            // Налаштування системи координат
+            const xMin = -5, xMax = 5;
+            const yMin = -5, yMax = 5;
+            
+            const xScale = width / (xMax - xMin);
+            const yScale = height / (yMax - yMin);
+            
+            const xToCanvas = (x) => (x - xMin) * xScale;
+            const yToCanvas = (y) => height - (y - yMin) * yScale;
+
+            // Малювання сітки (використовуємо Telegram тему якщо доступна)
+            ctx.strokeStyle = (isInTelegram && tg.themeParams.hint_color) || '#e5e7eb';
+            ctx.lineWidth = 1;
+            
+            for (let x = Math.ceil(xMin); x <= Math.floor(xMax); x++) {
+                ctx.beginPath();
+                ctx.moveTo(xToCanvas(x), 0);
+                ctx.lineTo(xToCanvas(x), height);
+                ctx.stroke();
+            }
+            
+            for (let y = Math.ceil(yMin); y <= Math.floor(yMax); y++) {
+                ctx.beginPath();
+                ctx.moveTo(0, yToCanvas(y));
+                ctx.lineTo(width, yToCanvas(y));
+                ctx.stroke();
+            }
+
+            // Малювання осей (використовуємо Telegram тему якщо доступна)
+            ctx.strokeStyle = (isInTelegram && tg.themeParams.text_color) || '#374151';
+            ctx.lineWidth = 2;
+            
+            // Вісь X
+            ctx.beginPath();
+            ctx.moveTo(0, yToCanvas(0));
+            ctx.lineTo(width, yToCanvas(0));
+            ctx.stroke();
+            
+            // Вісь Y
+            ctx.beginPath();
+            ctx.moveTo(xToCanvas(0), 0);
+            ctx.lineTo(xToCanvas(0), height);
+            ctx.stroke();
+
+            // Позначки на осях (використовуємо Telegram тему якщо доступна)
+            ctx.fillStyle = (isInTelegram && tg.themeParams.text_color) || '#374151';
+            ctx.font = '12px Arial';
+            ctx.textAlign = 'center';
+            
+            for (let x = Math.ceil(xMin); x <= Math.floor(xMax); x++) {
+                if (x !== 0) {
+                    ctx.fillText(x.toString(), xToCanvas(x), yToCanvas(0) + 15);
+                }
+            }
+            
+            ctx.textAlign = 'right';
+            for (let y = Math.ceil(yMin); y <= Math.floor(yMax); y++) {
+                if (y !== 0) {
+                    ctx.fillText(y.toString(), xToCanvas(0) - 5, yToCanvas(y) + 4);
+                }
+            }
+
+            // Малювання функцій
+            Object.entries(functions).forEach(([name, { enabled, color, fn }]) => {
+                if (!enabled) return;
+
+                ctx.strokeStyle = color;
+                ctx.lineWidth = 2.5;
+                ctx.beginPath();
+                
+                let started = false;
+                const step = 0.01;
+                
+                for (let x = xMin; x <= xMax; x += step) {
+                    const y = fn(x);
+                    
+                    if (y !== null && !isNaN(y) && isFinite(y) && y >= yMin && y <= yMax) {
+                        const canvasX = xToCanvas(x);
+                        const canvasY = yToCanvas(y);
+                        
+                        if (!started) {
+                            ctx.moveTo(canvasX, canvasY);
+                            started = true;
+                        } else {
+                            ctx.lineTo(canvasX, canvasY);
+                        }
+                    } else {
+                        if (started) {
+                            ctx.stroke();
+                            ctx.beginPath();
+                            started = false;
+                        }
+                    }
+                }
+                
+                if (started) {
+                    ctx.stroke();
+                }
+            });
+        }
+
+        // Обробники подій для кнопок
+        Object.entries(functions).forEach(([name, func]) => {
+            func.btn.addEventListener('click', () => {
+                func.enabled = !func.enabled;
+                func.btn.classList.toggle('disabled');
+                
+                // Тактильний відгук (вібрація) - тільки якщо в Telegram
+                if (isInTelegram && tg.HapticFeedback) {
+                    tg.HapticFeedback.impactOccurred('light');
+                }
+                
+                drawGraph();
+            });
+        });
+
+        // Початкове малювання
+        drawGraph();
+        
+        // Повідомляємо Telegram, що додаток готовий (тільки якщо в Telegram)
+        if (isInTelegram) {
+            tg.ready();
+        }
+    </script>
+</body>
+</html>
